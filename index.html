@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@100;400&family=Poppins:ital,wght@1,700&display=swap" rel="stylesheet">
+    <title>Vite App</title>
+    <style>
+      .font-pop {
+        font-family: "Poppins", sans-serif;
+        font-weight: 600;
+        font-style: italic;
+      }
+      .font-lato {
+        font-family: "Lato", sans-serif;
+        font-weight: 400;
+        font-style: normal;
+      }
+    </style>
+  </head>
+  <body>
+    <div class=" flex h-screen">
+      <div class="w-1/2 flex flex-col justify-center bg-black px-8 leading-none">
+        <div class="max-w-[500px] mx-auto">
+          <h1 class="text-white text-4xl mb-8 font-pop">Challenge the standard of space exploration</h1>
+          <p class="text-gray-400 mb-8 font-lato">Lorem Ipsum is simply dummy text of the
+            printing and typesetting industry. Lorem Ipsum has been the industry's 
+            standard dummy text ever since the 1500s, when an unknown printer took a
+              galley of type and scrambled it to make a type specimen book. It has survived
+              not only five centuries, but also the leap into electronic typesetting, 
+              remaining essentially unchanged.
+          </p>
+          <div>
+            <a href="" class="text-white bg-green-600 inline-block px-8 py-4 rounded-full font-lato">Learn More</a>
+          </div>
+        </div>
+      </div>
+      <div class="w-1/2" id="canvasContainer">
+        <canvas></canvas>
+      </div>
+    </div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
