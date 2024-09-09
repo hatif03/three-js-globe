@@ -5,12 +5,13 @@ import vertexShader from './shaders/vertex.glsl';
 import fragmentShader from './shaders/fragment.glsl';
 import atmosphereFragmentShader from './shaders/atmosphereFragment.glsl';
 import atmosphereVertexShader from './shaders/atmosphereVertex.glsl';
-import './tailwind.css'
+import './tailwind.css';
+import countries from './countries.json';
 
 const canvasContainer = document.querySelector('#canvasContainer');
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 60, canvasContainer.offsetWidth/canvasContainer.offsetHeight, 0.1, 1000 );
+const camera = new THREE.PerspectiveCamera( 70, canvasContainer.offsetWidth/canvasContainer.offsetHeight, 0.1, 1000 );
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -71,27 +72,155 @@ scene.add(stars);
 
 camera.position.z = 15;
 
+function createPoint({lat, long, country, population}){
+  const scale = population/1000000000;
+  const zScale = 0.8*scale;
+  const point = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1, 0.1, Math.max(zScale, 0.4)),
+    new THREE.MeshBasicMaterial({color: '#3BF7FF', opacity: 0.4, transparent: true})
+  );
+
+  const latitude = (lat/ 180) * Math.PI;
+  const longitude = (long/ 180) * Math.PI;
+  const radius = 5
+
+  point.position.x = radius * Math.sin(longitude) * Math.cos(latitude);
+  point.position.y = radius * Math.sin(latitude);
+  point.position.z = radius * Math.cos(latitude) * Math.cos(longitude);
+
+  point.lookAt(0,0,0);
+  point.geometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 0, -zScale/2));
+
+  group.add(point);
+
+  gsap.to(point.scale, {
+    duration: 2,
+    z: 1.4,
+    yoyo: true,
+    repeat: -1,
+    ease: 'linear',
+    delay: Math.random()
+  });
+
+  point.country = country
+  point.population = new Intl.NumberFormat().format(population)
+};
+
+countries.forEach((country) => {
+  createPoint({lat: country.latlng[0], long: country.latlng[1], country: country.name.common, population: country.population});
+});
+
+createPoint({lat:23.6345, long:-102.5528, country: "Mexico", population: "300mil"});
+
+sphere.rotation.y = -Math.PI / 2;
+group.rotation.offset = {
+  x:0,
+  y:0
+}
 
 const mouse = {
   x: undefined,
-  y: undefined  
+  y: undefined,
+  down: false,
+  xPrev: undefined,
+  yPrev: undefined
 };
 
-addEventListener('mousemove', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+const raycaster = new THREE.Raycaster();
+
+const popUpEl = document.querySelector('#popUpEl');
+const country = document.querySelector("#country");
+const population = document.querySelector("#population");
+
+canvasContainer.addEventListener('mousedown', ({clientX, clientY}) => {
+  mouse.down = true;
+  mouse.xPrev = clientX;
+  mouse.yPrev = clientY;
 });
 
+addEventListener('mousemove', (event) => {
+
+  mouse.x = ((event.clientX - innerWidth/2)/(innerWidth/2)) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  gsap.set(popUpEl, {
+    x: event.clientX,
+    y: event.clientY
+  });
+
+  if(mouse.down){
+
+    event.preventDefault();
+
+    const deltaX = event.clientX-mouse.xPrev;
+    const deltaY = event.clientY-mouse.yPrev;
+
+    group.rotation.offset.y += deltaX*0.005;
+    group.rotation.offset.x += deltaY*0.005;
+
+    gsap.to(group.rotation, {
+      y: group.rotation.offset.y,
+      x: group.rotation.offset.x,
+      duration: 2
+    });
+    
+    mouse.xPrev = event.clientX;
+    mouse.yPrev = event.clientY;
+
+  }
+});
+
+addEventListener('mouseup', (event) => {
+  mouse.down = false;
+});
+
+addEventListener('resize', () => {
+  renderer.setSize(canvasContainer.offsetWidth, canvasContainer.offsetHeight)
+});
 
 function animate(){
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
-  sphere.rotation.y += 0.002;
-  gsap.to(group.rotation, {
-    duration: 2,
-    y: mouse.x * 0.5,
-    x: -mouse.y * 0.3,
+  group.rotation.y += 0.0005;
+  // if(mouse.x){
+  //   gsap.to(group.rotation, {
+  //     duration: 2,
+  //     y: mouse.x * 1.5,
+  //     x: -mouse.y * 1.3,
+  //   });
+  // }
+
+  // update the picking ray with the camera and pointer position
+	raycaster.setFromCamera( mouse, camera );
+
+	// calculate objects intersecting the picking ray
+	const intersects = raycaster.intersectObjects( group.children.filter(mesh => {
+    return mesh.geometry.type === 'BoxGeometry';
+  }));
+
+  group.children.forEach(mesh => {
+    mesh.material.opacity = 0.4;
   });
+
+  gsap.set(popUpEl, {
+    display: 'none'
+  });
+
+	for ( let i = 0; i < intersects.length; i ++ ) {
+
+		const box = intersects[i].object;
+    box.material.opacity = 1;
+    gsap.set(popUpEl, {
+      display: 'block'
+    });
+
+    country.innerHTML = box.country;
+    population.innerHTML = box.population
+
+	}
+
+	renderer.render( scene, camera );
+
 }
 
 animate();
