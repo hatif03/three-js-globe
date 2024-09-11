@@ -11,7 +11,7 @@ import countries from './countries.json';
 const canvasContainer = document.querySelector('#canvasContainer');
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 70, canvasContainer.offsetWidth/canvasContainer.offsetHeight, 0.1, 1000 );
+let camera = new THREE.PerspectiveCamera( 70, canvasContainer.offsetWidth/canvasContainer.offsetHeight, 0.1, 1000 );
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -76,7 +76,7 @@ function createPoint({lat, long, country, population}){
   const scale = population/1000000000;
   const zScale = 0.8*scale;
   const point = new THREE.Mesh(
-    new THREE.BoxGeometry(0.1, 0.1, Math.max(zScale, 0.4)),
+    new THREE.BoxGeometry(0.11, 0.11, Math.max(zScale, 0.4)),
     new THREE.MeshBasicMaterial({color: '#3BF7FF', opacity: 0.4, transparent: true})
   );
 
@@ -140,8 +140,14 @@ canvasContainer.addEventListener('mousedown', ({clientX, clientY}) => {
 
 addEventListener('mousemove', (event) => {
 
-  mouse.x = ((event.clientX - innerWidth/2)/(innerWidth/2)) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  if(innerWidth>=1280){
+    mouse.x = ((event.clientX - innerWidth/2)/(innerWidth/2)) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  } else {
+    const offset = canvasContainer.getBoundingClientRect().top;
+    mouse.x = (event.clientX / innerWidth) * 2 - 1;
+    mouse.y = -((event.clientY - offset)/innerHeight) * 2 + 1;
+  }
 
   gsap.set(popUpEl, {
     x: event.clientX,
@@ -175,13 +181,15 @@ addEventListener('mouseup', (event) => {
 });
 
 addEventListener('resize', () => {
-  renderer.setSize(canvasContainer.offsetWidth, canvasContainer.offsetHeight)
+  renderer.setSize(canvasContainer.offsetWidth, canvasContainer.offsetHeight);
+  camera = new THREE.PerspectiveCamera(70, canvasContainer.offsetWidth/canvasContainer.offsetHeight, 0.1, 1000);
+  camera.position.z = 15;
 });
 
 function animate(){
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
-  group.rotation.y += 0.0005;
+  group.rotation.y += 0.0002;
   // if(mouse.x){
   //   gsap.to(group.rotation, {
   //     duration: 2,
@@ -224,4 +232,52 @@ function animate(){
 }
 
 animate();
+
+
+addEventListener('touchmove', (event) => {
+
+  event.clientX = event.touches[0].clientX;
+  event.clientY = event.touches[0].clientY;
+
+  const doesIntersect = raycaster.intersectObject(sphere);
+
+  if (doesIntersect.length > 0) mouse.down = true  
+
+  if(mouse.down){
+
+    const offset = canvasContainer.getBoundingClientRect().top;
+    mouse.x = (event.clientX / innerWidth) * 2 - 1;
+    mouse.y = -((event.clientY - offset)/innerHeight) * 2 + 1;
+
+    gsap.set(popUpEl, {
+      x: event.clientX,
+      y: event.clientY
+    });  
+
+    event.preventDefault();
+
+    const deltaX = event.clientX-mouse.xPrev;
+    const deltaY = event.clientY-mouse.yPrev;
+
+    group.rotation.offset.y += deltaX*0.005;
+    group.rotation.offset.x += deltaY*0.005;
+
+    gsap.to(group.rotation, {
+      y: group.rotation.offset.y,
+      x: group.rotation.offset.x,
+      duration: 2
+    });
+    
+    mouse.xPrev = event.clientX;
+    mouse.yPrev = event.clientY;
+
+  }
+},
+  {passive: false}
+);
+
+addEventListener('touchend', (event) => {
+  mouse.down = false;
+});
+
 
